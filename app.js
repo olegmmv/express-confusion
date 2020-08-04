@@ -18,8 +18,6 @@ mongoose.set('useNewUrlParser', true);
 mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 
-const Dishes = require('./models/dishes');
-
 const url = 'mongodb://localhost:27017/conFusion';
 const connect = mongoose.connect(url);
 
@@ -50,38 +48,23 @@ app.use(
   })
 );
 
+app.use('/', indexRouter);
+app.use('/users', usersRouter);
+
 const auth = (req, res, next) => {
   console.log(req.session);
 
   if (!req.session.user) {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      const err = new Error('You are not authenticated');
-      res.setHeader('WWW-Authenticate', 'Basic');
-      err.status = 401;
-      return next(err);
-    }
-
-    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-    const [username, password] = auth;
-
-    if (username === 'admin' && password === 'password') {
-      req.session.user = 'admin';
-      return next();
-    }
-
     const err = new Error('You are not authenticated');
-    res.setHeader('WWW-Authenticate', 'Basic');
-    err.status = 401;
+    err.status = 403;
     return next(err);
   }
 
-  if (req.session.user === 'admin') {
+  if (req.session.user === 'authenticated') {
     next();
   } else {
     const err = new Error('You are not authenticated');
-    err.status = 401;
+    err.status = 403;
     return next(err);
   }
 };
@@ -90,8 +73,6 @@ app.use(auth);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
 app.use('/dishes', dishRouter);
 app.use('/promotions', promoRouter);
 app.use('/leaders', leaderRouter);
