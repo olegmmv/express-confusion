@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const authenticate = require('../authenticate');
 
 const Dishes = require('../models/dishes');
+const { populate } = require('../models/dishes');
 
 const dishRouter = express.Router();
 
@@ -12,6 +13,7 @@ dishRouter
   .route('/')
   .get((req, res, next) => {
     Dishes.find({})
+      .populate('comments.author')
       .then((dishes) => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -19,7 +21,7 @@ dishRouter
       })
       .catch((err) => next(err));
   })
-  .post(authenticate.verifyUser, (req, res) => {
+  .post(authenticate.verifyUser, (req, res, next) => {
     Dishes.create(req.body)
       .then((dish) => {
         console.log('Dish is created', dish);
@@ -48,6 +50,7 @@ dishRouter
   .route('/:dishId')
   .get((req, res) => {
     Dishes.findById(req.params.dishId)
+      .populate('comments.author')
       .then((dish) => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -89,6 +92,7 @@ dishRouter
   .route('/:dishId/comments')
   .get((req, res, next) => {
     Dishes.findById(req.params.dishId)
+      .populate('comments.author')
       .then((dish) => {
         if (dish === null) {
           const err = new Error(`Dish ${req.params.dishId} was not found`);
@@ -111,11 +115,16 @@ dishRouter
           return next(err);
         }
 
+        req.body.author = req.user._id;
         dish.comments.push(req.body);
         dish.save().then((updatedDish) => {
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'application/json');
-          res.json(updatedDish);
+          Dishes.findById(updatedDish._id)
+            .populate('comments.author')
+            .then((populatedDish) => {
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.json(populatedDish);
+            });
         });
       })
       .catch((err) => next(err));
@@ -149,6 +158,7 @@ dishRouter
   .route('/:dishId/comments/:commentId')
   .get((req, res) => {
     Dishes.findById(req.params.dishId)
+      .populate('comments.author')
       .then((dish) => {
         if (dish === null) {
           const err = new Error(`Dish ${req.params.dishId} was not found`);
@@ -198,9 +208,13 @@ dishRouter
           comment.comment = req.body.comment;
         }
         dish.save().then((updatedDish) => {
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'application/json');
-          res.json(updatedDish);
+          Dishes.findById(updatedDish._id)
+            .populate('comments.author')
+            .then((populatedDish) => {
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.json(populatedDish);
+            });
         });
       })
       .catch((err) => next(err));
@@ -223,9 +237,13 @@ dishRouter
 
         comment.remove();
         dish.save().then((updatedDish) => {
-          res.statusCode = 200;
-          res.setHeader('Content-Type', 'application/json');
-          res.json(updatedDish);
+          Dishes.findById(updatedDish._id)
+            .populate('comments.author')
+            .then((populatedDish) => {
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'application/json');
+              res.json(populatedDish);
+            });
         });
       })
       .catch((err) => next(err));
