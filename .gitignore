@@ -1,6 +1,7 @@
 node_modules
 sessions
 config.js
+public/images
 
 *.key
 *.pem
